@@ -1,7 +1,20 @@
 {
   "instagram": {},
-  "tiktok": {},
-  "history": [],
-  "updated": null,
-  "notes": ["Placeholder. The GitHub Action overwrites this file every 4 hours once your secrets are set."]
+  "tiktok": {
+    "followers": 80100,
+    "handle": "rachellmedero"
+  },
+  "history": [
+    {
+      "d": "2026-07-26",
+      "ig": 0,
+      "tt": 80100,
+      "reach": 0,
+      "views": 0
+    }
+  ],
+  "updated": "2026-07-26T21:07:43.626Z",
+  "notes": [
+    "instagram: no credentials, kept previous"
+  ]
 }
