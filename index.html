@@ -954,3 +954,40 @@ document.getElementById('importFile').addEventListener('change', e=>{
 </script>
 </body>
 </html>
+<script>
+/* ---- live reach patch ---- */
+(function(){
+  const origStats = renderStats, origLive = loadLive;
+
+  window.renderStats = function(){
+    origStats();
+    const L = (S.live && S.live.ig) || {};
+    const tile = document.querySelectorAll('#stats .stat')[3];
+    if(!tile) return;
+    if(L.reach){
+      const bits = [];
+      if(L.views) bits.push(compact(L.views)+' views');
+      if(L.profileViews) bits.push(compact(L.profileViews)+' profile visits');
+      tile.querySelector('.lbl').textContent = 'Reach · last 28 days';
+      tile.querySelector('.val').textContent = compact(L.reach);
+      tile.querySelector('.sub').innerHTML =
+        '<span class="pill live">live</span><span>'+(bits.join(' · ')||'accounts reached')+'</span>';
+    } else {
+      tile.querySelector('.lbl').textContent = 'Total audience';
+    }
+  };
+
+  window.loadLive = async function(){
+    await origLive();
+    try{
+      const j = await fetch('data/live.json?ts='+Date.now(),{cache:'no-store'}).then(r=>r.json());
+      const ig = j.instagram || {};
+      S.live = { ig:{ reach:ig.reach||0, views:ig.views||0, profileViews:ig.profileViews||0 }, updated:j.updated||null };
+      save();
+    }catch(e){}
+    renderStats();
+  };
+
+  renderStats(); loadLive();
+})();
+</script>
