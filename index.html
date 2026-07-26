@@ -991,3 +991,28 @@ document.getElementById('importFile').addEventListener('change', e=>{
   renderStats(); loadLive();
 })();
 </script>
+<script>
+/* ---- manual reach entry (no Meta app needed) ---- */
+(function(){
+  if(!S.reachManual) S.reachManual = { value:0, views:0 };
+  const prevStats = renderStats;
+
+  window.renderStats = function(){
+    prevStats();
+    const L = (S.live && S.live.ig) || {};
+    if(L.reach) return;                       // live data wins if it ever arrives
+    const tile = document.querySelectorAll('#stats .stat')[3];
+    if(!tile) return;
+    const r = S.reachManual || {};
+    tile.querySelector('.lbl').textContent = 'Reach · last 28 days';
+    tile.querySelector('.val').innerHTML =
+      '<span contenteditable data-path="reachManual.value" data-type="num" data-fmt="compact">'
+      + compact(r.value||0) + '</span>';
+    tile.querySelector('.sub').innerHTML =
+      '<span class="pill">from IG app</span><span><span contenteditable data-path="reachManual.views" data-type="num" data-fmt="compact">'
+      + compact(r.views||0) + '</span> views</span>';
+  };
+
+  renderStats();
+})();
+</script>
