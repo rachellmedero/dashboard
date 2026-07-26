@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#EDE8E0">
+<title>Life Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDE8E0;
+  --card:#FBF9F6;
+  --card-2:#F5F2ED;
+  --ink:#20201E;
+  --ink-2:#57544E;
+  --ink-3:#8C877E;
+  --line:#DFD9CF;
+  --line-2:#EAE5DC;
+  --accent:#6E7256;
+  --accent-2:#A8926B;
+  --good:#5F7A52;
+  --warn:#B5822E;
+  --hot:#A85A44;
+  --r:16px;
+  --shadow:0 1px 2px rgba(32,32,30,.04), 0 8px 24px rgba(32,32,30,.05);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size:14px;
+  -webkit-font-smoothing:antialiased;
+  padding:22px 22px 60px;
+}
+.wrap{max-width:1480px;margin:0 auto}
+.serif{font-family:'Instrument Serif','Iowan Old Style',Georgia,serif;font-weight:400}
+.lbl{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.muted{color:var(--ink-3)}
+.sm{font-size:11px}
+.xs{font-size:10px}
+
+/* ---------- shell ---------- */
+.shell{background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);overflow:hidden}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;padding:22px 26px 18px;border-bottom:1px solid var(--line-2);background:linear-gradient(180deg,#FCFAF7,#F7F4EF)}
+.head h1{margin:2px 0 0;font-size:34px;line-height:1.05;letter-spacing:-.01em}
+.head h1 em{color:var(--ink-2)}
+.head .right{text-align:right;line-height:1.5}
+.head .day{font-size:20px;font-style:italic}
+.body{padding:20px 22px 26px}
+
+/* ---------- stat row ---------- */
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px}
+.stat{background:var(--card-2);border:1px solid var(--line-2);border-radius:var(--r);padding:13px 15px 12px;position:relative;min-height:104px}
+.stat .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.stat .val{font-size:32px;line-height:1.05;margin-top:9px;letter-spacing:-.02em}
+.stat .val small{font-size:12px;color:var(--ink-3);margin-left:3px;letter-spacing:0}
+.stat .sub{margin-top:9px;font-size:10.5px;color:var(--ink-3);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pill{border-radius:999px;padding:2px 7px;font-size:9.5px;font-weight:600;letter-spacing:.02em;background:#E7E3DA;color:var(--ink-2)}
+.pill.up{background:#E4EBDE;color:#4C6640}
+.pill.down{background:#F3E2DC;color:#95503C}
+.pill.live{background:#E6EDE2;color:#4C6640}
+.pill.live::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:#6E8E5B;margin-right:5px;vertical-align:middle;animation:blip 2s infinite}
+@keyframes blip{0%,100%{opacity:1}50%{opacity:.25}}
+.ring{width:30px;height:30px;flex:0 0 auto}
+.spark{width:100%;height:22px;display:block;margin-top:6px}
+
+/* ---------- grid ---------- */
+.grid{display:grid;grid-template-columns:1.05fr 1.15fr 1fr;gap:12px;align-items:start}
+.col{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--card-2);border:1px solid var(--line-2);border-radius:var(--r);padding:15px 16px 16px}
+.card.wide{margin-top:12px}
+.card>h2{font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:20px;margin:0}
+.chead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.chead .tools{display:flex;align-items:center;gap:6px}
+.btn{border:1px solid var(--line);background:#FBF9F6;color:var(--ink-2);border-radius:999px;padding:4px 10px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:.02em}
+.btn:hover{background:#F2EEE7;color:var(--ink)}
+.btn.solid{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.solid:hover{background:#5E6249}
+.btn.icon{padding:3px 7px}
+.seg{display:inline-flex;background:#EFEBE3;border-radius:999px;padding:2px}
+.seg button{border:0;background:transparent;font-family:inherit;font-size:10px;font-weight:600;color:var(--ink-3);padding:4px 11px;border-radius:999px;cursor:pointer}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+
+/* ---------- rows ---------- */
+.row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line-2)}
+.row:last-child{border-bottom:0}
+.row .grow{flex:1;min-width:0}
+.tm{width:44px;flex:0 0 44px;font-size:11px;color:var(--ink-3);padding-top:1px;font-variant-numeric:tabular-nums}
+.bar-l{width:2px;align-self:stretch;background:var(--accent-2);border-radius:2px;opacity:.6}
+.ttl{font-size:12.5px;font-weight:600}
+.sub2{font-size:10.5px;color:var(--ink-3);margin-top:1px}
+.now{background:#EFECE4;border-radius:10px;padding:6px 8px;margin:0 -8px}
+
+/* checkboxes */
+.chk{width:15px;height:15px;flex:0 0 auto;border:1.5px solid #C8C2B6;border-radius:5px;margin-top:1px;cursor:pointer;position:relative;background:#fff;transition:.12s}
+.chk:hover{border-color:var(--accent)}
+.chk.on{background:var(--accent);border-color:var(--accent)}
+.chk.on::after{content:'';position:absolute;left:4.4px;top:1.3px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(42deg)}
+.done{color:var(--ink-3);text-decoration:line-through;text-decoration-color:#C8C2B6}
+.tag{font-size:8.5px;font-weight:700;letter-spacing:.08em;padding:3px 7px;border-radius:999px;background:#E7E3DA;color:var(--ink-2);text-transform:uppercase;cursor:pointer;user-select:none}
+.tag[data-tag="HEALTH"]{background:#E4EBDE;color:#4C6640}
+.tag[data-tag="WORK"]{background:#E8E4F0;color:#5B5177}
+.tag[data-tag="MONEY"]{background:#EFE6D6;color:#836327}
+.tag[data-tag="CONTENT"]{background:#F0E3DE;color:#93594A}
+.tag[data-tag="HOME"]{background:#DFE7EA;color:#41626C}
+
+/* progress */
+.prog{height:5px;background:#E5E0D7;border-radius:99px;overflow:hidden;margin-top:7px}
+.prog i{display:block;height:100%;background:linear-gradient(90deg,var(--accent-2),var(--accent));border-radius:99px;transition:width .4s}
+.goal-row{padding:9px 0;border-bottom:1px dashed var(--line-2)}
+.goal-row:last-child{border-bottom:0}
+.goal-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.goal-top .name{font-size:12px;font-weight:600}
+.goal-top .pct{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+/* investments */
+.net{font-size:38px;letter-spacing:-.02em;line-height:1.1;margin:2px 0 12px}
+.acct{display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px dashed var(--line-2)}
+.acct:last-of-type{border-bottom:0}
+.dot{width:8px;height:8px;border-radius:3px;flex:0 0 auto}
+.amt{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stack{display:flex;height:7px;border-radius:99px;overflow:hidden;margin-top:12px;background:#E5E0D7}
+.stack i{display:block;height:100%}
+.hide-money .money{filter:blur(7px);user-select:none}
+
+/* socials */
+.soc{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.soc .box{background:#FBF9F6;border:1px solid var(--line-2);border-radius:12px;padding:11px 12px}
+.soc .who{display:flex;align-items:center;gap:7px;margin-bottom:9px}
+.badge{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;flex:0 0 auto}
+.badge svg{width:12px;height:12px;fill:#fff}
+.ig{background:linear-gradient(135deg,#8B5B9E,#C4573F 60%,#D9A441)}
+.tt{background:#141414}
+.soc .n{font-size:23px;letter-spacing:-.02em;line-height:1}
+
+/* weather */
+.wx{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.wx .t{font-size:40px;letter-spacing:-.02em;line-height:1}
+.wx .cond{font-size:12px;font-weight:600;margin-top:3px}
+.fc{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:14px;text-align:center;border-top:1px dashed var(--line-2);padding-top:11px}
+.fc div .d{font-size:9px;letter-spacing:.1em;color:var(--ink-3);font-weight:600}
+.fc div .tt2{font-size:12px;font-weight:600;margin-top:4px}
+.wxi{width:26px;height:26px;margin:4px auto 0;display:block}
+
+/* tables */
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:600;padding:0 10px 8px 0;border-bottom:1px solid var(--line-2);white-space:nowrap}
+td{padding:9px 10px 9px 0;border-bottom:1px dashed var(--line-2);font-size:12px;vertical-align:middle}
+tr:last-child td{border-bottom:0}
+.stat-chip{font-size:9.5px;font-weight:700;letter-spacing:.05em;padding:3px 8px;border-radius:999px;text-transform:uppercase;cursor:pointer;user-select:none;white-space:nowrap;display:inline-block}
+.s-inbound{background:#E7E3DA;color:#57544E}
+.s-negotiating{background:#EFE6D6;color:#836327}
+.s-contract{background:#E8E4F0;color:#5B5177}
+.s-booked{background:#DFE7EA;color:#41626C}
+.s-filming{background:#F0E3DE;color:#93594A}
+.s-delivered{background:#E4EBDE;color:#4C6640}
+.s-paid{background:#6E7256;color:#fff}
+.s-passed{background:#EDEAE4;color:#9A958C;text-decoration:line-through}
+
+/* pillars */
+.pillars{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.pil{background:#FBF9F6;border:1px solid var(--line-2);border-radius:13px;padding:12px}
+.pil .pn{font-size:12px;font-weight:600;line-height:1.3;min-height:32px}
+.pips{display:flex;gap:4px;margin-top:10px;flex-wrap:wrap}
+.pip{width:15px;height:15px;border-radius:5px;border:1.5px solid #C8C2B6;background:#fff;cursor:pointer;transition:.12s}
+.pip:hover{border-color:var(--accent)}
+.pip.on{background:var(--accent);border-color:var(--accent)}
+
+/* editable */
+[contenteditable]{outline:0;border-radius:4px;padding:0 2px;margin:0 -2px;transition:background .12s;cursor:text}
+[contenteditable]:hover{background:#EDE9E1}
+[contenteditable]:focus{background:#fff;box-shadow:0 0 0 2px rgba(110,114,86,.28)}
+.x{opacity:0;color:var(--ink-3);cursor:pointer;font-size:14px;line-height:1;padding:0 3px;border:0;background:0;font-family:inherit;transition:.12s}
+.row:hover .x,tr:hover .x,.acct:hover .x,.goal-row:hover .x{opacity:.55}
+.x:hover{opacity:1!important;color:var(--hot)}
+
+/* footer bar */
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line-2)}
+.bar .sp{flex:1}
+input[type=file]{display:none}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:#20201E;color:#fff;padding:9px 16px;border-radius:999px;font-size:12px;opacity:0;pointer-events:none;transition:.22s;z-index:99}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(max-width:1180px){
+  .stats{grid-template-columns:repeat(3,1fr)}
+  .grid{grid-template-columns:1fr 1fr}
+  .pillars{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:760px){
+  body{padding:10px 10px 40px}
+  .head{flex-direction:column;align-items:flex-start;gap:6px;padding:18px}
+  .head .right{text-align:left}
+  .head h1{font-size:27px}
+  .body{padding:14px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .grid{grid-template-columns:1fr}
+  .pillars{grid-template-columns:1fr 1fr}
+  .tblwrap{overflow-x:auto}
+  table{min-width:640px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <div class="shell">
+
+  <div class="head">
+    <div>
+      <div class="lbl">Life Dashboard</div>
+      <h1 class="serif"><span contenteditable data-path="meta.name">Rachell Jova</span> <em>— at a glance</em></h1>
+    </div>
+    <div class="right">
+      <div class="serif day" id="dowText">Sunday</div>
+      <div class="sm muted" id="dateText">—</div>
+      <div class="lbl" id="cityText">—</div>
+    </div>
+  </div>
+
+  <div class="body">
+
+    <!-- ===== stat row ===== -->
+    <div class="stats" id="stats"></div>
+
+    <!-- ===== main grid ===== -->
+    <div class="grid">
+
+      <!-- LEFT -->
+      <div class="col">
+        <div class="card">
+          <div class="chead">
+            <h2>Calendar</h2>
+            <div class="tools">
+              <a class="btn" id="gcal" href="https://calendar.google.com/calendar/r/day" target="_blank" rel="noopener">Open Google Cal</a>
+            </div>
+          </div>
+          <div id="cal"></div>
+          <div style="margin-top:10px"><button class="btn" data-add="calendar">+ Add event</button></div>
+        </div>
+
+        <div class="card">
+          <div class="chead">
+            <h2>Money Goals</h2>
+            <div class="lbl" id="qLabel">Q3 · 2026</div>
+          </div>
+          <div id="moneyGoals"></div>
+          <div style="margin-top:10px"><button class="btn" data-add="moneyGoals">+ Add goal</button></div>
+        </div>
+
+        <div class="card">
+          <div class="chead"><h2>Weight</h2><div class="lbl">Log</div></div>
+          <div style="display:flex;align-items:flex-end;gap:12px">
+            <div>
+              <div class="serif" style="font-size:34px;line-height:1" id="wNow">—</div>
+              <div class="sm muted" style="margin-top:4px">Goal <span contenteditable data-path="weight.goal" data-type="num">0</span> <span id="wUnit">lb</span></div>
+            </div>
+            <svg class="spark" id="wSpark" viewBox="0 0 120 30" preserveAspectRatio="none"></svg>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:12px;align-items:center">
+            <input id="wIn" type="number" step="0.1" placeholder="141.0" style="width:78px;padding:6px 9px;border:1px solid var(--line);border-radius:9px;font-family:inherit;font-size:12px;background:#fff">
+            <button class="btn solid" id="wAdd">Log weight</button>
+            <span class="xs muted" id="wLast"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- MIDDLE -->
+      <div class="col">
+        <div class="card">
+          <div class="chead">
+            <h2>Today's Focus</h2>
+            <div class="lbl" id="focusCount">0 of 0 done</div>
+          </div>
+          <div id="focus"></div>
+          <div style="margin-top:10px;display:flex;gap:6px">
+            <button class="btn" data-add="focus">+ Add task</button>
+            <button class="btn" id="clearDone">Clear completed</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="chead">
+            <h2>Investments</h2>
+            <div class="tools">
+              <span class="lbl" id="invUpdated">—</span>
+              <button class="btn icon" id="privacy" title="Blur amounts">Hide</button>
+            </div>
+          </div>
+          <div class="lbl">Net worth</div>
+          <div class="serif net money" id="netWorth">$0</div>
+          <div id="accts"></div>
+          <div class="stack" id="stack"></div>
+          <div style="margin-top:12px"><button class="btn" data-add="accounts">+ Add account</button></div>
+        </div>
+
+        <div class="card">
+          <div class="chead">
+            <h2>Collab Goals</h2>
+            <div class="lbl">This quarter</div>
+          </div>
+          <div id="collabGoals"></div>
+          <div style="margin-top:10px"><button class="btn" data-add="collabGoals">+ Add goal</button></div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="col">
+        <div class="card">
+          <div class="chead">
+            <h2>Content</h2>
+            <div class="lbl" id="socStatus">manual</div>
+          </div>
+          <div class="soc" id="soc"></div>
+          <div style="margin-top:14px" class="lbl">Recent post · performance</div>
+          <div id="posts" style="margin-top:4px"></div>
+          <div style="margin-top:10px"><button class="btn" data-add="posts">+ Add post</button></div>
+        </div>
+
+        <div class="card">
+          <div class="chead">
+            <h2>Weather</h2>
+            <div class="lbl"><span contenteditable data-path="meta.city" id="cityEdit">Miami, FL</span></div>
+          </div>
+          <div id="wx"><div class="sm muted">Loading…</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== collabs ===== -->
+    <div class="card wide">
+      <div class="chead">
+        <h2>Collab Pipeline</h2>
+        <div class="tools">
+          <span class="lbl" id="pipeSum">—</span>
+          <button class="btn" data-add="collabs">+ Add collab</button>
+        </div>
+      </div>
+      <div class="tblwrap">
+        <table>
+          <thead><tr>
+            <th style="width:15%">Brand</th><th style="width:14%">Contact</th><th style="width:11%">Rate</th>
+            <th style="width:24%">Deliverable</th><th style="width:12%">Status</th><th style="width:20%">Next step / due</th><th style="width:24px"></th>
+          </tr></thead>
+          <tbody id="collabs"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== content plan ===== -->
+    <div class="card wide">
+      <div class="chead">
+        <h2>Content Pillars</h2>
+        <div class="lbl" id="pillarSum">this week</div>
+      </div>
+      <div class="pillars" id="pillars"></div>
+    </div>
+
+    <div class="card wide">
+      <div class="chead">
+        <h2>Content Plan</h2>
+        <div class="tools">
+          <span class="lbl" id="planSum">—</span>
+          <button class="btn" data-add="plan">+ Add post idea</button>
+        </div>
+      </div>
+      <div class="tblwrap">
+        <table>
+          <thead><tr>
+            <th style="width:26px"></th><th style="width:11%">Day</th><th style="width:9%">Slot</th>
+            <th style="width:20%">Pillar</th><th style="width:36%">Hook / concept</th><th style="width:12%">Platform</th><th style="width:24px"></th>
+          </tr></thead>
+          <tbody id="plan"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="bar">
+      <span class="xs muted" id="savedAt">Everything you type saves automatically on this device.</span>
+      <span class="sp"></span>
+      <button class="btn" id="export">Download backup</button>
+      <label class="btn" for="importFile">Restore backup</label>
+      <input type="file" id="importFile" accept="application/json">
+      <button class="btn" id="reset">Reset to sample</button>
+    </div>
+
+  </div>
+ </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   1. DEFAULT DATA  —  edit anything right in the page
+   ============================================================ */
+const DEFAULTS = {
+  meta:{ name:"Your Name", city:"Miami, FL", quarter:"Q3 · 2026" },
+  weight:{ unit:"lb", goal:135, log:[{d:"2026-07-26",v:140.0}] },
+  socials:{
+    instagram:{handle:"yourhandle", followers:0, history:[]},
+    tiktok:{handle:"yourhandle", followers:0, history:[]}
+  },
+  posts:[
+    {title:"Most recent Reel", plat:"IG", views:0, note:"Reel · today"}
+  ],
+  calendar:[
+    {time:"8:00", title:"Morning routine", sub:""},
+    {time:"10:00", title:"Meeting", sub:""},
+    {time:"3:00", title:"Content session", sub:"Batch filming"},
+    {time:"6:00", title:"Evening plans", sub:""}
+  ],
+  focus:[
+    {t:"Workout", tag:"HEALTH", done:false},
+    {t:"Film content", tag:"CONTENT", done:false},
+    {t:"Follow up on a pitch", tag:"MONEY", done:false},
+    {t:"Deliverable", tag:"WORK", done:false},
+    {t:"Drink a gallon of water", tag:"HEALTH", done:false}
+  ],
+  accounts:[
+    {name:"Business checking", type:"Operating", value:0, color:"#6E7256"},
+    {name:"Business savings", type:"Tax reserve", value:0, color:"#A8926B"},
+    {name:"Personal savings", type:"Emergency fund", value:0, color:"#8A9A7B"},
+    {name:"Brokerage", type:"Index funds", value:0, color:"#C0A87F"},
+    {name:"Retirement", type:"Solo 401k / IRA", value:0, color:"#7E8B93"}
+  ],
+  moneyGoals:[
+    {label:"Course revenue", current:0, target:0},
+    {label:"Product launch", current:0, target:0},
+    {label:"Brand deal income", current:0, target:0},
+    {label:"Tax reserve set aside", current:0, target:0}
+  ],
+  collabGoals:[
+    {label:"Paid collabs signed", current:0, target:6},
+    {label:"Avg rate per Reel", current:0, target:0},
+    {label:"Inbound pitches vetted", current:0, target:20}
+  ],
+  collabs:[
+    {brand:"Brand name", contact:"Contact", offer:0, deliv:"1x Reel", status:"Inbound", next:"Vet + send rate card"}
+  ],
+  pillars:[
+    {name:"Pillar one", weekly:4, done:0},
+    {name:"Pillar two", weekly:5, done:0},
+    {name:"Pillar three", weekly:3, done:0},
+    {name:"Pillar four", weekly:4, done:0},
+    {name:"Pillar five", weekly:3, done:0}
+  ],
+  plan:[
+    {day:"Mon", slot:"AM", pillar:"Pillar one", hook:"Post idea", plat:"IG + TT", done:false}
+  ],
+  focusDate:""
+};
+
+/* ============================================================
+   2. STORAGE
+   ============================================================ */
+const KEY = 'rj-life-dashboard-v1';
+let mem = null;
+function readStore(){ try{ return localStorage.getItem(KEY); }catch(e){ return mem; } }
+function writeStore(v){ try{ localStorage.setItem(KEY,v); }catch(e){ mem = v; } }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function load(){
+  const raw = readStore();
+  if(!raw) return clone(DEFAULTS);
+  try{ return Object.assign(clone(DEFAULTS), JSON.parse(raw)); }
+  catch(e){ return clone(DEFAULTS); }
+}
+let S = load();
+let saveTimer;
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{
+    writeStore(JSON.stringify(S));
+    const el=document.getElementById('savedAt');
+    el.textContent='Saved '+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+  },180);
+}
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),1900); }
+
+/* path helpers for contenteditable binding */
+function getPath(p){ return p.split('.').reduce((a,k)=> a==null?a:a[k], S); }
+function setPath(p,v){ const k=p.split('.'); const last=k.pop(); let o=S; k.forEach(x=>o=o[x]); o[last]=v; }
+
+/* ============================================================
+   3. FORMATTERS
+   ============================================================ */
+const nf = new Intl.NumberFormat('en-US');
+function money(n){ return '$'+nf.format(Math.round(n||0)); }
+function compact(n){
+  n = +n || 0;
+  if(n>=1e6) return (n/1e6).toFixed(n>=1e7?0:1).replace(/\.0$/,'')+'M';
+  if(n>=1e3) return (n/1e3).toFixed(n>=1e5?0:1).replace(/\.0$/,'')+'k';
+  return nf.format(n);
+}
+function parseNum(s){ const n=parseFloat(String(s).replace(/[^0-9.\-]/g,'')); return isNaN(n)?0:n; }
+function today(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+/* ============================================================
+   4. HEADER
+   ============================================================ */
+function renderHead(){
+  const d = new Date();
+  document.getElementById('dowText').textContent = d.toLocaleDateString('en-US',{weekday:'long'});
+  document.getElementById('dateText').textContent =
+    d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) + ' · ' +
+    d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  document.getElementById('cityText').textContent = S.meta.city;
+  document.getElementById('qLabel').textContent = S.meta.quarter;
+  document.querySelectorAll('[data-path]').forEach(el=>{
+    if(document.activeElement===el) return;
+    const v = getPath(el.dataset.path);
+    el.textContent = el.dataset.type==='num' ? (v||0) : (v==null?'':v);
+  });
+}
+
+/* ============================================================
+   5. STAT ROW
+   ============================================================ */
+function delta(hist, cur){
+  if(!hist || hist.length<1) return null;
+  const first = hist[0].v;
+  return cur - first;
+}
+function ring(pct){
+  const r=13, c=2*Math.PI*r, off=c*(1-Math.max(0,Math.min(1,pct)));
+  return `<svg class="ring" viewBox="0 0 30 30"><circle cx="15" cy="15" r="${r}" fill="none" stroke="#E2DDD3" stroke-width="3"/>
+  <circle cx="15" cy="15" r="${r}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"
+   stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 15 15)"/></svg>`;
+}
+function renderStats(){
+  const w = S.weight.log.length ? S.weight.log[S.weight.log.length-1].v : 0;
+  const w0 = S.weight.log.length>1 ? S.weight.log[0].v : w;
+  const wd = (w-w0);
+  const ig = S.socials.instagram, tt = S.socials.tiktok;
+  const igd = delta(ig.history, ig.followers), ttd = delta(tt.history, tt.followers);
+  const reach = ig.followers + tt.followers;
+  const pillarDone = S.pillars.reduce((a,p)=>a+(p.done||0),0);
+  const pillarGoal = S.pillars.reduce((a,p)=>a+(p.weekly||0),0);
+  const planDone = S.plan.filter(p=>p.done).length;
+
+  const pipeline = S.collabs.filter(c=>!['Passed','Paid'].includes(c.status)).reduce((a,c)=>a+(+c.offer||0),0);
+  const booked = S.collabs.filter(c=>['Booked','Contract','Filming','Delivered','Paid'].includes(c.status)).reduce((a,c)=>a+(+c.offer||0),0);
+
+  const cards = [
+    { lbl:'Weight', val:w? w.toFixed(1):'—', unit:S.weight.unit,
+      sub:`<span class="pill ${wd<0?'up':wd>0?'down':''}">${wd>0?'+':''}${wd.toFixed(1)}</span><span>since ${S.weight.log.length?fmtShort(S.weight.log[0].d):'—'}</span>`,
+      ring: S.weight.goal? Math.min(1, (w0-w)/Math.max(.1,(w0-S.weight.goal))):0 },
+    { lbl:'Instagram · followers', val:compact(ig.followers), unit:'',
+      sub:`<span class="pill ${igd>=0?'up':'down'}">${igd>=0?'+':''}${compact(Math.abs(igd||0))}</span><span>@${esc(ig.handle)}</span>` },
+    { lbl:'TikTok · followers', val:compact(tt.followers), unit:'',
+      sub:`<span class="pill ${ttd>=0?'up':'down'}">${ttd>=0?'+':''}${compact(Math.abs(ttd||0))}</span><span>@${esc(tt.handle)}</span>` },
+    { lbl:'Total reach', val:compact(reach), unit:'',
+      sub:`<span class="pill">combined</span><span>${nf.format(reach)} people</span>` },
+    { lbl:'Collab pipeline', val:compact(pipeline), unit:'$', money:true,
+      sub:`<span class="pill up">${money(booked)} booked</span><span>${S.collabs.length} in pipeline</span>` }
+  ];
+  document.getElementById('stats').innerHTML = cards.map(c=>`
+    <div class="stat">
+      <div class="top"><div class="lbl">${c.lbl}</div>${c.ring!=null?ring(c.ring):''}</div>
+      <div class="serif val ${c.money?'money':''}">${c.unit==='$'?'$':''}${c.val}${c.unit&&c.unit!=='$'?`<small>${c.unit}</small>`:''}</div>
+      <div class="sub">${c.sub}</div>
+    </div>`).join('');
+
+  document.getElementById('pillarSum').textContent = `${pillarDone} of ${pillarGoal} posts this week`;
+  document.getElementById('planSum').textContent = `${planDone} of ${S.plan.length} planned posts done`;
+  document.getElementById('pipeSum').textContent = `${money(pipeline)} open · ${money(booked)} booked`;
+}
+function fmtShort(d){ const x=new Date(d+'T12:00:00'); return x.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+
+/* ============================================================
+   6. CALENDAR
+   ============================================================ */
+function renderCal(){
+  const now = new Date(); const mins = now.getHours()*60+now.getMinutes();
+  document.getElementById('cal').innerHTML = S.calendar.map((e,i)=>{
+    const m = toMins(e.time);
+    const next = S.calendar[i+1] ? toMins(S.calendar[i+1].time) : m+90;
+    const isNow = mins>=m && mins<next;
+    return `<div class="row ${isNow?'now':''}">
+      <div class="tm" contenteditable data-arr="calendar" data-i="${i}" data-f="time">${esc(e.time)}</div>
+      <div class="bar-l"></div>
+      <div class="grow">
+        <div class="ttl" contenteditable data-arr="calendar" data-i="${i}" data-f="title">${esc(e.title)}</div>
+        <div class="sub2" contenteditable data-arr="calendar" data-i="${i}" data-f="sub">${esc(e.sub||'')}</div>
+      </div>
+      ${isNow?'<span class="pill">now</span>':''}
+      <button class="x" data-del="calendar" data-i="${i}">×</button>
+    </div>`;
+  }).join('') || '<div class="sm muted">Nothing scheduled. Add an event below.</div>';
+}
+function toMins(t){
+  const m = String(t).match(/(\d{1,2}):?(\d{2})?\s*(am|pm)?/i);
+  if(!m) return 0;
+  let h = +m[1]; const mm = +(m[2]||0); const ap=(m[3]||'').toLowerCase();
+  if(ap==='pm' && h<12) h+=12; if(ap==='am' && h===12) h=0;
+  if(!ap && h<7) h+=12;              // 3:00 means 3pm
+  return h*60+mm;
+}
+
+/* ============================================================
+   7. FOCUS
+   ============================================================ */
+function renderFocus(){
+  if(S.focusDate && S.focusDate!==today()){
+    S.focus.forEach(f=>f.done=false);
+  }
+  S.focusDate = today();
+  const done = S.focus.filter(f=>f.done).length;
+  document.getElementById('focusCount').textContent = `${done} of ${S.focus.length} done`;
+  document.getElementById('focus').innerHTML = S.focus.map((f,i)=>`
+    <div class="row">
+      <div class="chk ${f.done?'on':''}" data-tog="focus" data-i="${i}"></div>
+      <div class="grow ttl ${f.done?'done':''}" style="font-weight:500" contenteditable data-arr="focus" data-i="${i}" data-f="t">${esc(f.t)}</div>
+      <span class="tag" data-tag="${esc(f.tag)}" data-cycle="focus" data-i="${i}">${esc(f.tag)}</span>
+      <button class="x" data-del="focus" data-i="${i}">×</button>
+    </div>`).join('') || '<div class="sm muted">Clear list. Add today’s first task.</div>';
+}
+const TAGS = ['HEALTH','WORK','MONEY','CONTENT','HOME'];
+
+/* ============================================================
+   8. INVESTMENTS
+   ============================================================ */
+function renderInv(){
+  const total = S.accounts.reduce((a,x)=>a+(+x.value||0),0);
+  document.getElementById('netWorth').textContent = money(total);
+  document.getElementById('accts').innerHTML = S.accounts.map((a,i)=>`
+    <div class="acct">
+      <span class="dot" style="background:${esc(a.color||'#A8926B')}"></span>
+      <div class="grow">
+        <div class="ttl" contenteditable data-arr="accounts" data-i="${i}" data-f="name">${esc(a.name)}</div>
+        <div class="sub2" contenteditable data-arr="accounts" data-i="${i}" data-f="type">${esc(a.type||'')}</div>
+      </div>
+      <div class="amt money" contenteditable data-arr="accounts" data-i="${i}" data-f="value" data-type="money">${money(a.value)}</div>
+      <button class="x" data-del="accounts" data-i="${i}">×</button>
+    </div>`).join('') || '<div class="sm muted">Add your accounts to track net worth.</div>';
+  document.getElementById('stack').innerHTML = total>0
+    ? S.accounts.map(a=>`<i style="width:${((+a.value||0)/total*100).toFixed(2)}%;background:${esc(a.color||'#A8926B')}"></i>`).join('')
+    : '';
+  document.getElementById('invUpdated').textContent = 'Updated '+new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+/* ============================================================
+   9. GOALS
+   ============================================================ */
+function renderGoals(which, el){
+  document.getElementById(el).innerHTML = S[which].map((g,i)=>{
+    const pct = g.target>0 ? Math.min(1,(+g.current||0)/g.target) : 0;
+    const isMoney = which==='moneyGoals' || /rate|revenue|income|\$/i.test(g.label);
+    const f = v => isMoney ? money(v) : nf.format(v);
+    return `<div class="goal-row">
+      <div class="goal-top">
+        <div class="name" contenteditable data-arr="${which}" data-i="${i}" data-f="label">${esc(g.label)}</div>
+        <div class="pct"><span class="${isMoney?'money':''}" contenteditable data-arr="${which}" data-i="${i}" data-f="current" data-type="${isMoney?'money':'num'}">${f(g.current)}</span>
+        <span class="muted"> / </span><span class="${isMoney?'money':''}" contenteditable data-arr="${which}" data-i="${i}" data-f="target" data-type="${isMoney?'money':'num'}">${f(g.target)}</span>
+        <button class="x" data-del="${which}" data-i="${i}">×</button></div>
+      </div>
+      <div class="prog"><i style="width:${(pct*100).toFixed(1)}%"></i></div>
+      <div class="xs muted" style="margin-top:4px">${g.target>0?(pct*100).toFixed(0)+'%':'set a target'}</div>
+    </div>`;
+  }).join('') || '<div class="sm muted">No goals yet.</div>';
+}
+
+/* ============================================================
+   10. SOCIALS + POSTS
+   ============================================================ */
+const IG_SVG = '<svg viewBox="0 0 24 24"><path d="M12 2.2c3.2 0 3.6 0 4.9.1 1.2.1 1.8.2 2.2.4.6.2 1 .5 1.4.9.4.4.7.8.9 1.4.2.4.4 1 .4 2.2.1 1.3.1 1.7.1 4.9s0 3.6-.1 4.9c0 1.2-.2 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.8.7-1.4.9-.4.2-1 .4-2.2.4-1.3.1-1.7.1-4.9.1s-3.6 0-4.9-.1c-1.2 0-1.8-.2-2.2-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.8-.9-1.4-.2-.4-.4-1-.4-2.2C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.9c0-1.2.2-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.8-.7 1.4-.9.4-.2 1-.4 2.2-.4C8.4 2.2 8.8 2.2 12 2.2zm0 3.2A6.6 6.6 0 1018.6 12 6.6 6.6 0 0012 5.4zm0 10.9A4.3 4.3 0 1116.3 12 4.3 4.3 0 0112 16.3zm6.9-11.1a1.5 1.5 0 11-1.5-1.5 1.5 1.5 0 011.5 1.5z"/></svg>';
+const TT_SVG = '<svg viewBox="0 0 24 24"><path d="M16.6 5.8a5 5 0 01-1.2-3.3h-3.2v13a2.8 2.8 0 11-2-2.7v-3.3A6.1 6.1 0 1017.6 15V9.2a8.2 8.2 0 004.8 1.5V7.5a4.9 4.9 0 01-2.9-.9 5.2 5.2 0 01-2.9-.8z"/></svg>';
+function renderSoc(){
+  const mk = (k, svg, cls, label) => {
+    const s = S.socials[k];
+    const d = delta(s.history, s.followers);
+    return `<div class="box">
+      <div class="who"><span class="badge ${cls}">${svg}</span><span class="lbl">${label}</span></div>
+      <div class="serif n" contenteditable data-path="socials.${k}.followers" data-type="num" data-fmt="compact">${compact(s.followers)}</div>
+      <div class="xs muted" style="margin-top:5px">followers · <span class="pill ${d>=0?'up':'down'}">${d>=0?'+':''}${compact(Math.abs(d||0))}</span></div>
+    </div>`;
+  };
+  document.getElementById('soc').innerHTML = mk('instagram',IG_SVG,'ig','Instagram') + mk('tiktok',TT_SVG,'tt','TikTok');
+  document.getElementById('posts').innerHTML = S.posts.map((p,i)=>`
+    <div class="row">
+      <div class="grow">
+        <div class="ttl" contenteditable data-arr="posts" data-i="${i}" data-f="title">${esc(p.title)}</div>
+        <div class="sub2" contenteditable data-arr="posts" data-i="${i}" data-f="note">${esc(p.note||'')}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="amt" contenteditable data-arr="posts" data-i="${i}" data-f="views" data-type="num" data-fmt="compact">${compact(p.views)}</div>
+        <div class="xs muted">views</div>
+      </div>
+      <button class="x" data-del="posts" data-i="${i}">×</button>
+    </div>`).join('') || '<div class="sm muted">Add a recent post to track it.</div>';
+}
+
+/* ============================================================
+   11. COLLABS
+   ============================================================ */
+const STATUSES = ['Inbound','Negotiating','Contract','Booked','Filming','Delivered','Paid','Passed'];
+function renderCollabs(){
+  document.getElementById('collabs').innerHTML = S.collabs.map((c,i)=>`
+    <tr>
+      <td><span class="ttl" contenteditable data-arr="collabs" data-i="${i}" data-f="brand">${esc(c.brand)}</span></td>
+      <td class="muted sm" contenteditable data-arr="collabs" data-i="${i}" data-f="contact">${esc(c.contact||'')}</td>
+      <td class="amt money" contenteditable data-arr="collabs" data-i="${i}" data-f="offer" data-type="money">${c.offer?money(c.offer):'—'}</td>
+      <td contenteditable data-arr="collabs" data-i="${i}" data-f="deliv">${esc(c.deliv||'')}</td>
+      <td><span class="stat-chip s-${String(c.status).toLowerCase()}" data-cycle-status="${i}">${esc(c.status)}</span></td>
+      <td class="muted sm" contenteditable data-arr="collabs" data-i="${i}" data-f="next">${esc(c.next||'')}</td>
+      <td><button class="x" data-del="collabs" data-i="${i}">×</button></td>
+    </tr>`).join('') || '<tr><td colspan="7" class="sm muted">No collabs yet.</td></tr>';
+}
+
+/* ============================================================
+   12. PILLARS + PLAN
+   ============================================================ */
+function renderPillars(){
+  document.getElementById('pillars').innerHTML = S.pillars.map((p,i)=>{
+    const pips = Array.from({length:p.weekly},(_,k)=>
+      `<span class="pip ${k<p.done?'on':''}" data-pip="${i}" data-k="${k}"></span>`).join('');
+    return `<div class="pil">
+      <div class="pn" contenteditable data-arr="pillars" data-i="${i}" data-f="name">${esc(p.name)}</div>
+      <div class="pips">${pips}</div>
+      <div class="xs muted" style="margin-top:8px">${p.done} / <span contenteditable data-arr="pillars" data-i="${i}" data-f="weekly" data-type="num">${p.weekly}</span> this week</div>
+    </div>`;
+  }).join('');
+}
+function renderPlan(){
+  document.getElementById('plan').innerHTML = S.plan.map((p,i)=>`
+    <tr>
+      <td><div class="chk ${p.done?'on':''}" data-tog="plan" data-i="${i}"></div></td>
+      <td class="ttl ${p.done?'done':''}" contenteditable data-arr="plan" data-i="${i}" data-f="day">${esc(p.day)}</td>
+      <td class="muted sm" contenteditable data-arr="plan" data-i="${i}" data-f="slot">${esc(p.slot||'')}</td>
+      <td class="sm" contenteditable data-arr="plan" data-i="${i}" data-f="pillar">${esc(p.pillar||'')}</td>
+      <td class="${p.done?'done':''}" contenteditable data-arr="plan" data-i="${i}" data-f="hook">${esc(p.hook||'')}</td>
+      <td class="muted sm" contenteditable data-arr="plan" data-i="${i}" data-f="plat">${esc(p.plat||'')}</td>
+      <td><button class="x" data-del="plan" data-i="${i}">×</button></td>
+    </tr>`).join('') || '<tr><td colspan="7" class="sm muted">No posts planned.</td></tr>';
+}
+
+/* ============================================================
+   13. WEIGHT SPARKLINE
+   ============================================================ */
+function renderWeight(){
+  const log = S.weight.log;
+  const el = document.getElementById('wNow');
+  el.textContent = log.length ? log[log.length-1].v.toFixed(1) : '—';
+  document.getElementById('wUnit').textContent = S.weight.unit;
+  document.getElementById('wLast').textContent = log.length ? 'last: '+fmtShort(log[log.length-1].d) : '';
+  const svg = document.getElementById('wSpark');
+  if(log.length<2){ svg.innerHTML=''; return; }
+  const vals = log.map(x=>x.v), min=Math.min(...vals), max=Math.max(...vals), rng=(max-min)||1;
+  const pts = log.map((x,i)=>[i/(log.length-1)*118+1, 27-((x.v-min)/rng)*24]);
+  const d = pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+  const area = d+` L119,30 L1,30 Z`;
+  svg.innerHTML = `<path d="${area}" fill="rgba(110,114,86,.13)"/><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="1.6" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+   <circle cx="${pts[pts.length-1][0].toFixed(1)}" cy="${pts[pts.length-1][1].toFixed(1)}" r="2.4" fill="var(--accent)"/>`;
+}
+
+/* ============================================================
+   14. WEATHER  (Open-Meteo · free, no API key)
+   ============================================================ */
+const WX = {
+  0:['Clear','sun'],1:['Mostly clear','sun'],2:['Partly cloudy','pcloud'],3:['Overcast','cloud'],
+  45:['Fog','fog'],48:['Fog','fog'],51:['Light drizzle','rain'],53:['Drizzle','rain'],55:['Drizzle','rain'],
+  61:['Light rain','rain'],63:['Rain','rain'],65:['Heavy rain','rain'],66:['Freezing rain','rain'],67:['Freezing rain','rain'],
+  71:['Light snow','snow'],73:['Snow','snow'],75:['Heavy snow','snow'],77:['Snow grains','snow'],
+  80:['Showers','rain'],81:['Showers','rain'],82:['Heavy showers','rain'],85:['Snow showers','snow'],86:['Snow showers','snow'],
+  95:['Thunderstorm','storm'],96:['Thunderstorm','storm'],99:['Thunderstorm','storm']
+};
+function wxIcon(kind,size){
+  const s = size||26;
+  const sun = `<circle cx="12" cy="12" r="5" fill="#D9A441"/>${[0,45,90,135,180,225,270,315].map(a=>`<line x1="12" y1="12" x2="12" y2="2.2" stroke="#D9A441" stroke-width="1.7" stroke-linecap="round" transform="rotate(${a} 12 12)"/>`).join('')}`;
+  const cloud = `<path d="M7 18h10a3.6 3.6 0 000-7.2 5.2 5.2 0 00-10-1.3A3.4 3.4 0 007 18z" fill="#B9BDC4"/>`;
+  const map = {
+    sun:sun,
+    pcloud:`<circle cx="9" cy="9" r="4" fill="#D9A441"/>${cloud}`,
+    cloud:cloud,
+    rain:`${cloud}<line x1="9" y1="19.5" x2="8" y2="22.5" stroke="#7E96A8" stroke-width="1.8" stroke-linecap="round"/><line x1="13" y1="19.5" x2="12" y2="22.5" stroke="#7E96A8" stroke-width="1.8" stroke-linecap="round"/>`,
+    snow:`${cloud}<circle cx="9" cy="21" r="1.3" fill="#9BB3C4"/><circle cx="14" cy="21" r="1.3" fill="#9BB3C4"/>`,
+    storm:`${cloud}<path d="M12 19l-2.5 4h2.4L10.6 26l4.4-5h-2.3l1.2-2z" fill="#D9A441"/>`,
+    fog:`${cloud}<line x1="6" y1="21" x2="18" y2="21" stroke="#B9BDC4" stroke-width="1.7" stroke-linecap="round"/>`
+  };
+  return `<svg class="wxi" style="width:${s}px;height:${s}px" viewBox="0 0 24 28">${map[kind]||cloud}</svg>`;
+}
+async function loadWeather(){
+  const box = document.getElementById('wx');
+  const city = (S.meta.city||'').trim();
+  if(!city){ box.innerHTML='<div class="sm muted">Type your city above.</div>'; return; }
+  try{
+    const g = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city.split(',')[0])}&count=5&language=en&format=json`).then(r=>r.json());
+    if(!g.results || !g.results.length) throw 0;
+    const st = city.split(',')[1] ? city.split(',')[1].trim().toLowerCase() : '';
+    const hit = g.results.find(r => st && ((r.admin1||'').toLowerCase().startsWith(st) || (r.country_code||'').toLowerCase()===st)) || g.results[0];
+    const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${hit.latitude}&longitude=${hit.longitude}&current=temperature_2m,weather_code,apparent_temperature&daily=weather_code,temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=auto&forecast_days=5`).then(r=>r.json());
+    const code = w.current.weather_code, info = WX[code]||['—','cloud'];
+    const days = w.daily.time.slice(1,5).map((t,i)=>({
+      d:new Date(t+'T12:00:00').toLocaleDateString('en-US',{weekday:'short'}).toUpperCase(),
+      hi:Math.round(w.daily.temperature_2m_max[i+1]),
+      k:(WX[w.daily.weather_code[i+1]]||['','cloud'])[1]
+    }));
+    box.innerHTML = `
+      <div class="wx">
+        <div>
+          <div class="serif t">${Math.round(w.current.temperature_2m)}°</div>
+          <div class="cond">${info[0]}</div>
+          <div class="xs muted" style="margin-top:3px">Feels ${Math.round(w.current.apparent_temperature)}° · High ${Math.round(w.daily.temperature_2m_max[0])}° / Low ${Math.round(w.daily.temperature_2m_min[0])}°</div>
+        </div>
+        <div>${wxIcon(info[1],46)}</div>
+      </div>
+      <div class="fc">${days.map(d=>`<div><div class="d">${d.d}</div>${wxIcon(d.k,24)}<div class="tt2">${d.hi}°</div></div>`).join('')}</div>
+      <div class="xs muted" style="margin-top:9px">${esc(hit.name)}${hit.admin1?', '+esc(hit.admin1):''} · live</div>`;
+  }catch(e){
+    box.innerHTML = '<div class="sm muted">Couldn’t load weather for that city. Try "Miami, FL" or "Chicago, IL".</div>';
+  }
+}
+
+/* ============================================================
+   15. LIVE SOCIAL FEED (written by GitHub Action → data/live.json)
+   ============================================================ */
+async function loadLive(){
+  try{
+    const r = await fetch('data/live.json?ts='+Date.now(), {cache:'no-store'});
+    if(!r.ok) throw 0;
+    const j = await r.json();
+    let touched = false;
+    ['instagram','tiktok'].forEach(k=>{
+      const n = j[k] && +j[k].followers;
+      if(n && n>0){
+        const s = S.socials[k];
+        if(s.followers !== n){
+          s.history = (s.history||[]).filter(h=>h.d!==today());
+          s.history.push({d:today(), v:n});
+          if(s.history.length>60) s.history = s.history.slice(-60);
+          s.followers = n;
+          touched = true;
+        }
+      }
+    });
+    if(j.updated){
+      const el = document.getElementById('socStatus');
+      el.innerHTML = `<span class="pill live">live</span> ${new Date(j.updated).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}`;
+    }
+    if(touched){ save(); renderSoc(); renderStats(); }
+  }catch(e){ /* no live file yet — manual numbers stay */ }
+}
+
+/* ============================================================
+   16. RENDER ALL + EVENTS
+   ============================================================ */
+function renderAll(){
+  renderHead(); renderStats(); renderCal(); renderFocus(); renderInv();
+  renderGoals('moneyGoals','moneyGoals'); renderGoals('collabGoals','collabGoals');
+  renderSoc(); renderCollabs(); renderPillars(); renderPlan(); renderWeight();
+}
+renderAll();
+loadWeather();
+loadLive();
+setInterval(()=>{ renderHead(); renderCal(); }, 60000);
+setInterval(loadLive, 10*60*1000);
+
+/* --- editing --- */
+document.addEventListener('focusin', e=>{
+  const el = e.target;
+  if(!el.hasAttribute || !el.hasAttribute('contenteditable')) return;
+  if(el.dataset.type==='money' || el.dataset.type==='num' || el.dataset.fmt==='compact'){
+    const raw = el.dataset.arr
+      ? S[el.dataset.arr][+el.dataset.i][el.dataset.f]
+      : getPath(el.dataset.path);
+    el.textContent = (raw==null?'':raw);
+    requestAnimationFrame(()=>document.execCommand&&document.execCommand('selectAll',false,null));
+  }
+});
+document.addEventListener('focusout', e=>{
+  const el = e.target;
+  if(!el.hasAttribute || !el.hasAttribute('contenteditable')) return;
+  const txt = el.textContent.trim();
+  const typed = (el.dataset.type==='money'||el.dataset.type==='num'||el.dataset.fmt==='compact');
+  const val = typed ? parseNum(txt) : txt;
+  if(el.dataset.arr){ S[el.dataset.arr][+el.dataset.i][el.dataset.f] = val; }
+  else if(el.dataset.path){ setPath(el.dataset.path, val); }
+  save();
+  const p = el.dataset.path||'';
+  if(p.startsWith('meta.city')){ renderHead(); loadWeather(); return; }
+  renderAll();
+});
+document.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && e.target.hasAttribute && e.target.hasAttribute('contenteditable')){ e.preventDefault(); e.target.blur(); }
+  if(e.key==='Escape' && e.target.hasAttribute && e.target.hasAttribute('contenteditable')){ e.target.blur(); }
+});
+
+/* --- clicks --- */
+const BLANK = {
+  calendar:{time:"9:00",title:"New event",sub:""},
+  focus:{t:"New task",tag:"WORK",done:false},
+  accounts:{name:"New account",type:"",value:0,color:"#8A9A7B"},
+  moneyGoals:{label:"New goal",current:0,target:1000},
+  collabGoals:{label:"New goal",current:0,target:5},
+  collabs:{brand:"New brand",contact:"",offer:0,deliv:"",status:"Inbound",next:""},
+  plan:{day:"Mon",slot:"AM",pillar:"",hook:"New idea",plat:"IG",done:false},
+  posts:{title:"New post",plat:"IG",views:0,note:""}
+};
+document.addEventListener('click', e=>{
+  const t = e.target;
+
+  if(t.dataset.add){ S[t.dataset.add].push(clone(BLANK[t.dataset.add])); save(); renderAll(); return; }
+  if(t.dataset.del){ S[t.dataset.del].splice(+t.dataset.i,1); save(); renderAll(); return; }
+  if(t.dataset.tog){ const a=S[t.dataset.tog][+t.dataset.i]; a.done=!a.done; save(); renderAll(); return; }
+  if(t.dataset.cycle){ const f=S[t.dataset.cycle][+t.dataset.i]; f.tag = TAGS[(TAGS.indexOf(f.tag)+1)%TAGS.length]; save(); renderFocus(); return; }
+  if(t.dataset.cycleStatus!=null && t.dataset.cycleStatus!==''){
+    const c=S.collabs[+t.dataset.cycleStatus];
+    c.status = STATUSES[(STATUSES.indexOf(c.status)+1)%STATUSES.length];
+    save(); renderCollabs(); renderStats(); return;
+  }
+  if(t.dataset.pip!=null && t.dataset.pip!==''){
+    const p=S.pillars[+t.dataset.pip], k=+t.dataset.k;
+    p.done = (p.done===k+1) ? k : k+1;
+    save(); renderPillars(); renderStats(); return;
+  }
+  if(t.id==='clearDone'){ S.focus = S.focus.filter(f=>!f.done); save(); renderAll(); return; }
+  if(t.id==='privacy'){
+    document.body.classList.toggle('hide-money');
+    t.textContent = document.body.classList.contains('hide-money') ? 'Show' : 'Hide';
+    return;
+  }
+  if(t.id==='wAdd'){
+    const v = parseFloat(document.getElementById('wIn').value);
+    if(!v){ toast('Enter a weight first'); return; }
+    S.weight.log = S.weight.log.filter(x=>x.d!==today());
+    S.weight.log.push({d:today(), v:v});
+    S.weight.log.sort((a,b)=>a.d<b.d?-1:1);
+    if(S.weight.log.length>90) S.weight.log = S.weight.log.slice(-90);
+    document.getElementById('wIn').value='';
+    save(); renderAll(); toast('Weight logged');
+    return;
+  }
+  if(t.id==='export'){
+    const blob = new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='dashboard-backup-'+today()+'.json';
+    a.click(); URL.revokeObjectURL(a.href);
+    return;
+  }
+  if(t.id==='reset'){
+    if(confirm('Reset everything back to the sample data?')){ S=clone(DEFAULTS); save(); renderAll(); loadWeather(); }
+    return;
+  }
+});
+document.getElementById('importFile').addEventListener('change', e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ S=Object.assign(clone(DEFAULTS), JSON.parse(r.result)); save(); renderAll(); loadWeather(); toast('Backup restored'); }catch(x){ toast('That file didn’t look right'); } };
+  r.readAsText(f);
+});
+</script>
+</body>
+</html>
