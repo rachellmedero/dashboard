@@ -1032,3 +1032,19 @@ document.getElementById('importFile').addEventListener('change', e=>{
   renderStats();
 })();
 </script>
+<script>
+/* ---- remove the reach tile ---- */
+(function(){
+  const css = document.createElement('style');
+  css.textContent = '@media(min-width:1181px){#stats{grid-template-columns:repeat(4,1fr)}}';
+  document.head.appendChild(css);
+
+  const prevStats = renderStats;
+  window.renderStats = function(){
+    prevStats();
+    const tiles = document.querySelectorAll('#stats .stat');
+    if(tiles[3]) tiles[3].remove();
+  };
+  renderStats();
+})();
+</script>
