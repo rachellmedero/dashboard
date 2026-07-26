@@ -1,5 +1,5 @@
 /**
- * Refreshes data/live.json with current follower counts.
+ * Refreshes data/live.json with current follower counts + reach.
  * Runs inside GitHub Actions. No npm packages needed (Node 20+ has fetch).
  *
  * Secrets it looks for (all optional — whatever is missing is skipped):
@@ -22,14 +22,59 @@ function readPrev() {
 }
 
 /* ---------------- Instagram ---------------- */
+const GRAPH = 'https://graph.facebook.com/v21.0';
+
+/* Account-level insights. Meta keeps renaming these (impressions -> views),
+   so each metric is tried three ways and whatever answers first wins.
+   Needs the instagram_manage_insights permission on the token. */
+async function igInsights(id, tok) {
+  const out = {};
+  const metrics = ['reach', 'views', 'profile_views', 'accounts_engaged'];
+
+  for (const m of metrics) {
+    const attempts = [
+      `metric=${m}&period=days_28&metric_type=total_value`,
+      `metric=${m}&metric_type=total_value&period=day`,
+      `metric=${m}&period=day`
+    ];
+    for (const qs of attempts) {
+      try {
+        const j = await fetch(`${GRAPH}/${id}/insights?${qs}&access_token=${tok}`).then(r => r.json());
+        if (j.error) continue;
+        const d = j.data && j.data[0];
+        if (!d) continue;
+        let v = d.total_value && typeof d.total_value.value === 'number' ? d.total_value.value : null;
+        if (v == null && Array.isArray(d.values)) {
+          v = d.values.reduce((a, x) => a + (Number(x.value) || 0), 0);
+        }
+        if (v != null) { out[m] = v; break; }
+      } catch { /* next attempt */ }
+    }
+  }
+  return out;
+}
+
 async function instagram() {
   const id = process.env.IG_USER_ID, tok = process.env.IG_ACCESS_TOKEN;
   if (!id || !tok) return null;
-  const url = `https://graph.facebook.com/v21.0/${id}?fields=username,followers_count,media_count&access_token=${tok}`;
-  const r = await fetch(url);
-  const j = await r.json();
+
+  const j = await fetch(
+    `${GRAPH}/${id}?fields=username,followers_count,media_count&access_token=${tok}`
+  ).then(r => r.json());
   if (j.error) throw new Error('Instagram: ' + j.error.message);
-  return { followers: j.followers_count, posts: j.media_count, handle: j.username };
+
+  const base = { followers: j.followers_count, posts: j.media_count, handle: j.username };
+
+  try {
+    const ins = await igInsights(id, tok);
+    if (ins.reach != null) base.reach = ins.reach;
+    if (ins.views != null) base.views = ins.views;
+    if (ins.profile_views != null) base.profileViews = ins.profile_views;
+    if (ins.accounts_engaged != null) base.engaged = ins.accounts_engaged;
+    base.window = '28d';
+  } catch { /* followers still returned */ }
+
+  return base;
 }
 
 /* ---------------- TikTok (official API) ---------------- */
@@ -55,7 +100,7 @@ async function tiktokOfficial() {
     { headers: { Authorization: 'Bearer ' + tr.access_token } }
   ).then(r => r.json());
 
-  const d = u?.data?.user;
+  const d = u && u.data && u.data.user;
   if (!d) throw new Error('TikTok user info: ' + JSON.stringify(u));
   return { followers: d.follower_count, likes: d.likes_count, videos: d.video_count, handle: d.display_name };
 }
@@ -104,9 +149,15 @@ try {
 
 /* daily history point, one per day */
 out.history = out.history.filter(h => h.d !== today);
-out.history.push({ d: today, ig: out.instagram.followers || 0, tt: out.tiktok.followers || 0 });
+out.history.push({
+  d: today,
+  ig: out.instagram.followers || 0,
+  tt: out.tiktok.followers || 0,
+  reach: out.instagram.reach || 0,
+  views: out.instagram.views || 0
+});
 out.history = out.history.slice(-365);
 
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify(out, null, 2) + '\n');
-console.log('wrote', OUT, JSON.stringify({ ig: out.instagram.followers, tt: out.tiktok.followers, notes: out.notes }));
+console.log('wrote', OUT, JSON.stringify({ ig: out.instagram.followers, tt: out.tiktok.followers, reach: out.instagram.reach, notes: out.notes }));
