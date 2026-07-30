@@ -258,7 +258,7 @@ input[type=file]{display:none}
             </div>
           </div>
           <div id="cal"></div>
-          <div style="margin-top:10px"><button class="btn" data-add="calendar">+ Add event</button></div>
+          <div style="margin-top:10px"><button class="btn" data-caladd>+ Add event</button></div>
         </div>
 
         <div class="card">
@@ -592,23 +592,37 @@ function fmtShort(d){ const x=new Date(d+'T12:00:00'); return x.toLocaleDateStri
 /* ============================================================
    6. CALENDAR
    ============================================================ */
+/* The dashboard Calendar card now mirrors TODAY's events from the
+   Calendar tab (shared local storage key rj-life-calendar-v1). */
+const CAL_KEY = 'rj-life-calendar-v1';
+function readCal(){ try{ const r=localStorage.getItem(CAL_KEY); if(!r) return {view:'month',events:{}}; const p=JSON.parse(r); return {view:p.view||'month', events:p.events||{}}; }catch(e){ return {view:'month',events:{}}; } }
+function writeCal(c){ try{ localStorage.setItem(CAL_KEY, JSON.stringify({view:c.view||'month', events:c.events||{}})); }catch(e){} }
+function calTodayKey(){ const d=new Date(); const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+function fmtT(t){
+  if(!t) return '';
+  const m=String(t).match(/(\d{1,2}):?(\d{2})?\s*(am|pm)?/i); if(!m) return esc(t);
+  let h=+m[1]; const mm=+(m[2]||0); let ap=(m[3]||'').toLowerCase();
+  if(!ap){ if(h<7) h+=12; ap=h>=12?'pm':'am'; } else { if(ap==='pm'&&h<12)h+=12; if(ap==='am'&&h===12)h=0; }
+  let h12=h%12; if(h12===0)h12=12; return h12+(mm?':'+String(mm).padStart(2,'0'):'')+(h>=12?'PM':'AM');
+}
 function renderCal(){
+  const cal = readCal(); const key = calTodayKey();
+  const tm = x=> x ? toMins(x) : 100000;
+  const list = (cal.events[key]||[]).map((e,i)=>({e,i})).sort((a,b)=>tm(a.e.t)-tm(b.e.t));
   const now = new Date(); const mins = now.getHours()*60+now.getMinutes();
-  document.getElementById('cal').innerHTML = S.calendar.map((e,i)=>{
-    const m = toMins(e.time);
-    const next = S.calendar[i+1] ? toMins(S.calendar[i+1].time) : m+90;
-    const isNow = mins>=m && mins<next;
+  document.getElementById('cal').innerHTML = list.map(({e,i})=>{
+    const m = toMins(e.t);
+    const isNow = e.t && mins>=m && mins<m+90;
     return `<div class="row ${isNow?'now':''}">
-      <div class="tm" contenteditable data-arr="calendar" data-i="${i}" data-f="time">${esc(e.time)}</div>
+      <div class="tm" contenteditable data-cal="t" data-i="${i}">${e.t?fmtT(e.t):'—'}</div>
       <div class="bar-l"></div>
       <div class="grow">
-        <div class="ttl" contenteditable data-arr="calendar" data-i="${i}" data-f="title">${esc(e.title)}</div>
-        <div class="sub2" contenteditable data-arr="calendar" data-i="${i}" data-f="sub">${esc(e.sub||'')}</div>
+        <div class="ttl ${e.done?'done':''}" contenteditable data-cal="title" data-i="${i}">${esc(e.title)}</div>
       </div>
-      ${isNow?'<span class="pill">now</span>':''}
-      <button class="x" data-del="calendar" data-i="${i}">×</button>
+      ${e.done?'<span class="pill up">done</span>':(isNow?'<span class="pill">now</span>':'')}
+      <button class="x" data-caldel data-i="${i}">×</button>
     </div>`;
-  }).join('') || '<div class="sm muted">Nothing scheduled. Add an event below.</div>';
+  }).join('') || '<div class="sm muted">Nothing scheduled today. Add it in your Calendar tab, or with + Add event below.</div>';
 }
 function toMins(t){
   const m = String(t).match(/(\d{1,2}):?(\d{2})?\s*(am|pm)?/i);
@@ -877,6 +891,10 @@ loadLive();
 setInterval(()=>{ renderHead(); renderCal(); }, 60000);
 setInterval(loadLive, 10*60*1000);
 
+/* keep the Calendar card in sync with the Calendar tab */
+window.addEventListener('storage', e=>{ if(e.key===CAL_KEY) renderCal(); });
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) renderCal(); });
+
 /* --- editing --- */
 document.addEventListener('focusin', e=>{
   const el = e.target;
@@ -892,6 +910,15 @@ document.addEventListener('focusin', e=>{
 document.addEventListener('focusout', e=>{
   const el = e.target;
   if(!el.hasAttribute || !el.hasAttribute('contenteditable')) return;
+  if(el.dataset.cal){                                   // edits to the shared Calendar store
+    const cal=readCal(), key=calTodayKey(), arr=cal.events[key];
+    const i=+el.dataset.i;
+    if(!arr || !arr[i]){ renderCal(); return; }
+    let txt=el.textContent.trim();
+    if(el.dataset.cal==='t'){ if(txt==='—') txt=''; arr[i].t=txt; }
+    else { if(!txt){ arr.splice(i,1); if(!arr.length) delete cal.events[key]; } else arr[i].title=txt; }
+    writeCal(cal); renderCal(); return;
+  }
   const txt = el.textContent.trim();
   const typed = (el.dataset.type==='money'||el.dataset.type==='num'||el.dataset.fmt==='compact');
   const val = typed ? parseNum(txt) : txt;
@@ -921,6 +948,8 @@ const BLANK = {
 document.addEventListener('click', e=>{
   const t = e.target;
 
+  if(t.dataset.caladd!==undefined){ const cal=readCal(), key=calTodayKey(); (cal.events[key]=cal.events[key]||[]).push({t:'',title:'New event',done:false}); writeCal(cal); renderCal(); return; }
+  if(t.dataset.caldel!==undefined){ const cal=readCal(), key=calTodayKey(), arr=cal.events[key]; if(arr){ arr.splice(+t.dataset.i,1); if(!arr.length) delete cal.events[key]; writeCal(cal); } renderCal(); return; }
   if(t.dataset.add){ S[t.dataset.add].push(clone(BLANK[t.dataset.add])); save(); renderAll(); return; }
   if(t.dataset.del){ S[t.dataset.del].splice(+t.dataset.i,1); save(); renderAll(); return; }
   if(t.dataset.tog){ const a=S[t.dataset.tog][+t.dataset.i]; a.done=!a.done; save(); renderAll(); return; }
