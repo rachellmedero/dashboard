@@ -1,7 +1,7 @@
 {
   "instagram": {},
   "tiktok": {
-    "followers": 81900,
+    "followers": 82000,
     "handle": "rachellmedero"
   },
   "history": [
@@ -158,9 +158,16 @@
       "tt": 81900,
       "reach": 0,
       "views": 0
+    },
+    {
+      "d": "2026-08-17",
+      "ig": 0,
+      "tt": 82000,
+      "reach": 0,
+      "views": 0
     }
   ],
-  "updated": "2026-08-16T20:49:04.329Z",
+  "updated": "2026-08-17T03:15:24.006Z",
   "notes": [
     "instagram: no credentials, kept previous"
   ]
